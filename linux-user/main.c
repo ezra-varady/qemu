@@ -47,6 +47,10 @@
 #include "cpu_loop-common.h"
 #include "crypto/init.h"
 
+// OCEANIT PMP Modification
+#include "config.h"
+target_ulong program_code_offset, program_code_start, program_code_end;
+
 char *exec_path;
 
 int singlestep;
@@ -818,8 +822,13 @@ int main(int argc, char **argv, char **envp)
     cpu->opaque = ts;
     task_settid(ts);
 
-    ret = loader_exec(execfd, exec_path, target_argv, target_environ, regs,
-        info, &bprm);
+	
+    ret = loader_exec(execfd, exec_path, target_argv, target_environ, regs, info, &bprm);
+	// OCEANIT PMP Modification load pama lowmem
+	// TODO move this below loader_exec, that way I can fill right up
+	// to the start of the program
+	int fd_memory_scheme = open("/home/evarady/CYBER/pama/pama.bin", O_RDONLY);
+	mmap(NULL, 0x400000, PROT_READ | PROT_WRITE, MAP_FIXED | MAP_PRIVATE | MAP_FILE, fd_memory_scheme, 0);
     if (ret != 0) {
         printf("Error while loading %s: %s\n", exec_path, strerror(-ret));
         _exit(EXIT_FAILURE);

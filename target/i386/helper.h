@@ -228,3 +228,11 @@ DEF_HELPER_3(rcrq, tl, env, tl, tl)
 #endif
 
 DEF_HELPER_1(rdrand, tl, env)
+
+/* OCEANIT PMP Modifications
+ * Here we use DEF_HELPER macros to define our TCG hooks
+ * These will be called during instruction translation to swap branchs
+ * https://fulcronz27.wordpress.com/2014/06/09/qemu-call-a-custom-function-from-tcg/
+ * https://curiouslearnerblog.wordpress.com/2016/05/04/qemu-tcg-instruction-emulation/
+ */
+DEF_HELPER_4(trace_conditional_jmp, void, tl, tl, tl, tl)
