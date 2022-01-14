@@ -12,9 +12,9 @@
 #include "qemu/guest-random.h"
 #include "qemu/units.h"
 
-// OCEANIT PMP Modification
-// Include header containing address info for use in translation
-// Bring address variables into scope
+/* Include header containing address info for use in translation
+ * Bring address variables into scope
+ */
 #include "config.h"
 
 #ifdef _ARCH_PPC64
@@ -2273,7 +2273,6 @@ static void probe_guest_base(const char *image_name,
      * it explicitly, and set guest_base appropriately.
      * In case of error we will print a suitable message and exit.
      */
-	fprintf(stdout, "ELFLOAD");
     const char *errmsg;
     if (!have_guest_base && !reserved_va) {
         unsigned long host_start, real_start, host_size;
@@ -2407,8 +2406,8 @@ static void load_elf_image(const char *image_name, int image_fd,
 			  
 			// OCEANIT PMP Modifications
 			// I think they remove this so that addressing is fixed to 0x0
-            probe_guest_base(image_name, loaddr, hiaddr);
-			//if (0) probe_guest_base(image_name, loaddr, hiaddr);
+            //probe_guest_base(image_name, loaddr, hiaddr);
+			if (0) probe_guest_base(image_name, loaddr, hiaddr);
         }
     }
 

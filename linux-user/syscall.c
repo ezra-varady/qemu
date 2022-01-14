@@ -12436,6 +12436,9 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
     if (unlikely(qemu_loglevel_mask(LOG_STRACE))) {
         print_syscall(num, arg1, arg2, arg3, arg4, arg5, arg6);
     }
+	if (num == __NR_exit || num == __NR_exit_group) {
+		while (wait(NULL) > 0);
+	}
 
     ret = do_syscall1(cpu_env, num, arg1, arg2, arg3, arg4,
                       arg5, arg6, arg7, arg8);

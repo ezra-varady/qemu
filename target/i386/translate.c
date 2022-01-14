@@ -2242,11 +2242,15 @@ static inline void gen_goto_tb(DisasContext *s, int tb_num, target_ulong eip)
     }
 }
 
+//OCEANIT PMP Modification
 static void gen_bnd_jmp(DisasContext *s);
+
 static inline void gen_jcc(DisasContext *s, int b,
                            target_ulong val, target_ulong next_eip)
 {
     TCGLabel *l1, *l2;
+
+	struct pair tmp_pair = {s->base.pc_next, 0};
 
     if (s->jmp_opt) {
         l1 = gen_new_label();
@@ -2254,33 +2258,85 @@ static inline void gen_jcc(DisasContext *s, int b,
 		// OCEANIT PMP Modification: call into tracing function to log information about conditional branch insn
 		// next instruction, current block, true branch, false branch
 		//void helper_trace_conditional_jmp(target_ulong insn_addr, target_ulong current_branch, target_ulong true_branch, target_ulong false_branch)
-		gen_helper_trace_conditional_jmp(tcg_const_tl(s->base.pc_next), tcg_const_tl(next_eip), tcg_const_tl(val), tcg_const_tl(next_eip));
-		if ((s->base.pc_next - program_code_offset) == 0x1160){
-			s->T0 = tcg_const_tl(val);
+		//gen_helper_trace_conditional_jmp(tcg_const_tl(s->base.pc_next), tcg_const_tl(next_eip), tcg_const_tl(val), tcg_const_tl(next_eip));
+		//if ((s->base.pc_next - program_code_offset) == 0x1160){
+		//	s->T0 = tcg_const_tl(val);
+		//	gen_op_jmp_v(s->T0);
+		//	gen_bnd_jmp(s);
+		//	gen_jr(s, s->T0);
+		//}
+		//else {
+		//	gen_goto_tb(s, 0, next_eip);
+		//}
+		//
+	    if (g_slist_find_custom(path_scheme, &tmp_pair, g_slist_compare_pair_first)) {
+			gen_helper_hook_conditional_jmp(s->T0, tcg_const_tl(s->base.pc_next), tcg_const_tl(next_eip), tcg_const_tl(val), tcg_const_tl(next_eip));
+			gen_helper_trace_conditional_jmp(tcg_const_tl(s->base.pc_next), s->T0, tcg_const_tl(val), tcg_const_tl(next_eip));
 			gen_op_jmp_v(s->T0);
 			gen_bnd_jmp(s);
 			gen_jr(s, s->T0);
-		}
-		else {
+	    } else {
+			gen_helper_trace_conditional_jmp(tcg_const_tl(s->base.pc_next), tcg_const_tl(next_eip), tcg_const_tl(val), tcg_const_tl(next_eip));
 			gen_goto_tb(s, 0, next_eip);
 		}
+	
+	
+		gen_set_label(l1);
+        if (g_slist_find_custom(path_scheme, &tmp_pair, g_slist_compare_pair_first)) {
+            gen_helper_hook_conditional_jmp(s->T0, tcg_const_tl(s->base.pc_next), tcg_const_tl(val), tcg_const_tl(val), tcg_const_tl(next_eip));
+            gen_helper_trace_conditional_jmp(tcg_const_tl(s->base.pc_next), s->T0, tcg_const_tl(val), tcg_const_tl(next_eip));
+            gen_op_jmp_v(s->T0);
+            gen_bnd_jmp(s);
+            gen_jr(s, s->T0);
+        } else {
+            gen_helper_trace_conditional_jmp(tcg_const_tl(s->base.pc_next), tcg_const_tl(val), tcg_const_tl(val), tcg_const_tl(next_eip));
+            gen_goto_tb(s, 1, val);
+        }
+/* PMP Modification - End */
 
-
-        gen_set_label(l1);
-        gen_goto_tb(s, 1, val);
     } else {
         l1 = gen_new_label();
         l2 = gen_new_label();
         gen_jcc1(s, b, l1);
-		// OCEANIT PMP Modification: call into tracing function to log information about conditional branch insn
-		// next instruction, current block, true branch, false branch
-		gen_helper_trace_conditional_jmp(tcg_const_tl(s->base.pc_next), s->T0, tcg_const_tl(val), tcg_const_tl(next_eip));
 
+/* PMP Modification - Begin */
+/*
         gen_jmp_im(s, next_eip);
+*/
+
+        if (g_slist_find_custom(path_scheme, &tmp_pair, g_slist_compare_pair_first)) {
+            gen_helper_hook_conditional_jmp(s->T0, tcg_const_tl(s->base.pc_next), tcg_const_tl(next_eip), tcg_const_tl(val), tcg_const_tl(next_eip));
+            gen_helper_trace_conditional_jmp(tcg_const_tl(s->base.pc_next), s->T0, tcg_const_tl(val), tcg_const_tl(next_eip));
+            gen_op_jmp_v(s->T0);
+            gen_bnd_jmp(s);
+            gen_jr(s, s->T0);
+        } else {
+            gen_helper_trace_conditional_jmp(tcg_const_tl(s->base.pc_next), tcg_const_tl(next_eip), tcg_const_tl(val), tcg_const_tl(next_eip));
+            gen_jmp_im(s, next_eip);
+        }
+/* PMP Modification - End */
+
         tcg_gen_br(l2);
 
         gen_set_label(l1);
+
+/* PMP Modification - Begin */
+/*
         gen_jmp_im(s, val);
+*/
+
+        if (g_slist_find_custom(path_scheme, &tmp_pair, g_slist_compare_pair_first)) {
+            gen_helper_hook_conditional_jmp(s->T0, tcg_const_tl(s->base.pc_next), tcg_const_tl(val), tcg_const_tl(val), tcg_const_tl(next_eip));
+            gen_helper_trace_conditional_jmp(tcg_const_tl(s->base.pc_next), s->T0, tcg_const_tl(val), tcg_const_tl(next_eip));
+            gen_op_jmp_v(s->T0);
+            gen_bnd_jmp(s);
+            gen_jr(s, s->T0);
+        } else {
+            gen_helper_trace_conditional_jmp(tcg_const_tl(s->base.pc_next), tcg_const_tl(val), tcg_const_tl(val), tcg_const_tl(next_eip));
+            gen_jmp_im(s, val);
+        }
+/* PMP Modification - End */
+
         gen_set_label(l2);
         gen_eob(s);
     }
@@ -4515,6 +4571,15 @@ static target_ulong disas_insn(DisasContext *s, CPUState *cpu)
     int rex_w, rex_r;
     target_ulong pc_start = s->base.pc_next;
 
+	//OCEANIT PMP Modification
+#ifdef DUMP_INSN
+	if (is_program_code(pc_start)) {
+		FILE* file_insn_tmp = fopen(fname_insn_tmp, "a+");
+		fprintf(file_insn_tmp, TARGET_ABI_FMT_lx"\n", pc_start - program_code_offset);
+		fclose(file_insn_tmp);
+	}
+#endif
+
     s->pc_start = s->pc = pc_start;
     s->override = -1;
 #ifdef TARGET_X86_64
@@ -5082,6 +5147,9 @@ static target_ulong disas_insn(DisasContext *s, CPUState *cpu)
                 tcg_gen_ext16u_tl(s->T0, s->T0);
             }
             next_eip = s->pc - s->cs_base;
+// OCEANIT PMP Modification
+            gen_helper_hook_indirect_call(s->T0, tcg_const_tl(s->base.pc_next), s->T0, tcg_const_tl(next_eip));
+
             tcg_gen_movi_tl(s->T1, next_eip);
             gen_push_v(s, s->T1);
             gen_op_jmp_v(s->T0);
@@ -5111,6 +5179,10 @@ static target_ulong disas_insn(DisasContext *s, CPUState *cpu)
             if (dflag == MO_16) {
                 tcg_gen_ext16u_tl(s->T0, s->T0);
             }
+// OCEANIT PMP Modification
+            gen_helper_hook_indirect_jmp(s->T0, tcg_const_tl(s->base.pc_next), s->T0, tcg_const_tl(s->pc - s->cs_base));
+            gen_helper_trace_indirect_jmp(tcg_const_tl(s->base.pc_next), s->T0, tcg_const_tl(s->pc - s->cs_base));
+
             gen_op_jmp_v(s->T0);
             gen_bnd_jmp(s);
             gen_jr(s, s->T0);
@@ -8670,23 +8742,82 @@ void restore_state_to_opc(CPUX86State *env, TranslationBlock *tb,
 //	fprintf(fp, "the function is getting called");
 //	fclose(fp);
 //}
+//void helper_trace_conditional_jmp(target_ulong insn_addr, target_ulong current_branch, target_ulong true_branch, target_ulong false_branch)
+//{
+//	if (is_program_code(insn_addr)) {
+//		FILE * fp;
+//		fp = fopen ("/home/ezra/CYBER/pama/output.txt", "a+");
+//		fprintf(fp, "\nthe function is getting called\n");
+//		fprintf(fp, "offset: %lx, start: %lx, end: %lx\n",
+//				program_code_offset, program_code_start, program_code_end);
+//		fprintf(fp, "insn addr: %lx, current_branch: %lx, true: %lx, false: %lx\n",
+//				insn_addr, current_branch, true_branch, false_branch);
+//		if (current_branch == true_branch) fprintf(fp, TARGET_ABI_FMT_lx":T\n", insn_addr - program_code_offset);
+//		else if (current_branch == false_branch) fprintf(fp, TARGET_ABI_FMT_lx":F\n", insn_addr - program_code_offset);
+//
+//		if ((insn_addr - program_code_offset) == 0x1160) {
+//			fprintf(fp, "attempting to flip jmp\n");
+//			insn_addr = true_branch;
+//		}
+//		fclose(fp);
+//	}
+//}
+target_ulong helper_hook_conditional_jmp(target_ulong insn_addr, target_ulong current_branch, target_ulong true_branch, target_ulong false_branch)
+{
+    target_ulong target_branch = current_branch;
+
+    struct pair *obj = g_slist_nth_data(path_scheme, index_path_scheme);
+
+    if (obj && obj->first == insn_addr - program_code_offset) {
+        if (current_branch == false_branch && obj->second == 'T') {
+            target_branch = true_branch;
+        } else if (current_branch == true_branch && obj->second == 'F') {
+            target_branch = false_branch;
+        }
+        index_path_scheme++;
+    }
+
+    return target_branch;
+}
+
 void helper_trace_conditional_jmp(target_ulong insn_addr, target_ulong current_branch, target_ulong true_branch, target_ulong false_branch)
 {
-	if (is_program_code(insn_addr)) {
-		FILE * fp;
-		fp = fopen ("/home/evarady/CYBER/pama/output.txt", "a+");
-		fprintf(fp, "\nthe function is getting called\n");
-		fprintf(fp, "offset: %lx, start: %lx, end: %lx\n",
-				program_code_offset, program_code_start, program_code_end);
-		fprintf(fp, "insn addr: %lx, current_branch: %lx, true: %lx, false: %lx\n",
-				insn_addr, current_branch, true_branch, false_branch);
-		if (current_branch == true_branch) fprintf(fp, TARGET_ABI_FMT_lx":T\n", insn_addr - program_code_offset);
-		else if (current_branch == false_branch) fprintf(fp, TARGET_ABI_FMT_lx":F\n", insn_addr - program_code_offset);
+    if (is_program_code(insn_addr)) {
+        FILE *file_path_trace = fopen(fname_path_trace, "a+");
 
-		if ((insn_addr - program_code_offset) == 0x1160) {
-			fprintf(fp, "attempting to flip jmp\n");
-			insn_addr = true_branch;
-		}
-		fclose(fp);
-	}
+        if (current_branch == true_branch) fprintf(file_path_trace, TARGET_ABI_FMT_lx":T\n", insn_addr - program_code_offset);
+        else if (current_branch == false_branch) fprintf(file_path_trace, TARGET_ABI_FMT_lx":F\n", insn_addr - program_code_offset);
+    
+        fclose(file_path_trace);
+    }
+}
+
+target_ulong helper_hook_indirect_jmp(target_ulong insn_addr, target_ulong dest_addr, target_ulong next_addr)
+{
+    target_ulong target_addr = (is_valid_addr(dest_addr) ? dest_addr : next_addr);
+
+    struct pair *obj = g_slist_nth_data(path_scheme, index_path_scheme);
+
+    if (obj && obj->first == insn_addr - program_code_offset) {
+        target_addr = obj->second + program_code_offset;
+        index_path_scheme++;
+    }
+
+    return target_addr;
+}
+
+void helper_trace_indirect_jmp(target_ulong insn_addr, target_ulong dest_addr, target_ulong next_addr)
+{
+    if (is_program_code(insn_addr)) {
+        FILE *file_path_trace = fopen(fname_path_trace, "a+");
+        fprintf(file_path_trace, TARGET_ABI_FMT_lx"#"TARGET_ABI_FMT_lx"\n", insn_addr - program_code_offset, dest_addr - program_code_offset);
+        fclose(file_path_trace);
+    }
+}
+
+target_ulong helper_hook_indirect_call(target_ulong insn_addr, target_ulong dest_addr, target_ulong next_addr)
+{
+    target_ulong target_addr = (is_valid_addr(dest_addr) ? dest_addr : next_addr);
+
+    return target_addr;
 }
